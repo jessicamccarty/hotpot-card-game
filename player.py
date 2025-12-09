@@ -3,6 +3,7 @@
 from __future__ import annotations
 from typing import List
 from card import Card, CATEGORIES
+from card import CATEGORY_EMOJI, CATEGORY_COLORS
 
 
 class Player:
@@ -195,19 +196,33 @@ class Player:
         return len(self.completed_sets)
     
 
-    def describe_hand(self) -> str:
-        # Create text description for user interface
-        if not self.hand:
-            return "(empty hand)"
-        return ",".join(F"{idx:} {str(card)}" for idx, card in enumerate(self.hand))
+    def describe_hand(self):
+        grouped = {}
+        for card in self.hand:
+            grouped.setdefault(card.category, []).append(card)
 
-    def describe_sets(self) -> str:
+        output_lines = []
+        index = 0
+
+        for category in sorted(grouped.keys()):
+            emoji = CATEGORY_EMOJI.get(category, "")
+            color = CATEGORY_COLORS.get(category)
+            header = color(f"{emoji} {category}")
+            output_lines.append(f"{header}:")
+
+            for card in grouped[category]:
+                output_lines.append(f"  {index}: {card}")
+                index += 1
+
+        return "\n".join(output_lines)
+
+    def describe_sets(self):
         if not self.completed_sets:
-             return "No sets yet."
-        parts = []
-        for idx, (set_type, cards) in enumerate(self.completed_sets, start=1):
-            card_text = " | ".join(str(c) for c in cards)
-            parts.append(f"Set {idx} [{set_type}]: {card_text}")
+            return "No sets yet."
 
-        return "\n".join(parts)
+        lines = []
+        for idx, (stype, cards) in enumerate(self.completed_sets, 1):
+            lines.append(f"Set {idx} [{stype}]: " + " | ".join(str(c) for c in cards))
+
+        return "\n".join(lines)
 
