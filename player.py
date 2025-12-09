@@ -58,7 +58,7 @@ class Player:
                 self.hand[j + 1] = self.hand[j]
                 j -= 1
 
-            self.hand[j + 1]] = key_card
+            self.hand[j + 1] = key_card
 
 
     # Searching using binary search
@@ -142,23 +142,23 @@ class Player:
 
         for category, ingredient_dict in by_category.items():
         # Ingredient names from our global definition
-        all_ingredients = CATEGORIES[category]
+            all_ingredients = CATEGORIES[category]
 
          # Find how many complete sets can be formed limited by the minimum count across each ingredient
-        counts = [len(ingredient_dict.get(ing, [])) for ing in all_ingredients]
-        possible_sets = min(counts)
+            counts = [len(ingredient_dict.get(ing, [])) for ing in all_ingredients]
+            possible_sets = min(counts)
 
-        # Form those sets
-        for _ in range(possible_sets):
-            set_cards: List[Card] = []
+            # Form those sets
+            for _ in range(possible_sets):
+                set_cards: List[Card] = []
+                for ing in all_ingredients:
+                    set_cards.append(ingredient_dict[ing].pop())
+                self.completed_sets.append(("category_set", set_cards))
+                self.score += 60
+
+            # Leftover cards stay in the remaining pool
             for ing in all_ingredients:
-                set_cards.append(ingredient_dict[ing].pop())
-            self.completed_sets.append(("category_set", set_cards))
-            self.score += 60
-
-        # Leftover cards stay in the remaining pool
-        for ing in all_ingredients:
-            remaining.extend(ingredient_dict.get(ing, []))
+                remaining.extend(ingredient_dict.get(ing, []))
 
         return remaining    
     
@@ -188,5 +188,4 @@ class Player:
             parts.append(f"Set {idx} [{set_type}]: {card_text}")
 
         return "\n".join(parts)
-    
-     
+
