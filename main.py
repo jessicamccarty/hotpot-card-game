@@ -12,10 +12,10 @@ def main() -> None:
                 break
             print("Invalid input. Please enter 1, 2, 3, or 4.")
 
-        game = Game(human_count=n)
-        game.play()
+
+    game = Game(human_count=n)
+    game.play()
 
 if __name__ == "__main__":
     main()
 
-    

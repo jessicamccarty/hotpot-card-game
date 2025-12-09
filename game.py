@@ -1,12 +1,11 @@
-# Define game loop. Generate AI players based on number of human players
-
 from __future__ import annotations
+
 import random
 from typing import List
 from deck import Deck
 from player import Player
 
-WINNING_SETS = 3 # First player to complete 3 sets wins
+WINNING_SETS = 3  # First player to complete 3 sets wins
 
 class Game:
     def __init__(self, human_count: int) -> None:
@@ -26,9 +25,7 @@ class Game:
         for i in range(1, ai_needed + 1):
             self.players.append(Player(f"Computer {i}", is_human=False))
 
-
         self.current_player_index: int = 0
-
 
     # Setup player hands
     def deal_initial_hands(self, cards_per_player: int = 8) -> None:
@@ -42,14 +39,12 @@ class Game:
         for player in self.players:
             player.sort_hand()
 
-
     # Main game loop
     def play(self) -> None:
         print("Welcome to the Hotpot minigame!")
         print("The first player to complete 3 sets of 3 cards wins.")
         print("Up to 4 players may play; others are computer controlled.")
         print("Type 'q' on your turn to quit.")
-
 
         self.deal_initial_hands()
 
@@ -59,21 +54,20 @@ class Game:
             current = self.players[self.current_player_index]
             self._print_table_state(current)
 
+            # FIXED: Prevent humans from running AI logic
             if current.is_human:
                 quit_game = self._human_turn(current)
                 if quit_game:
                     print(f"{current.name} has quit the game.")
                     return
-                else:
-                    self._computer_turn(current)
+            else:
+                self._computer_turn(current)
 
-            
             # After drawing and discarding, detect sets
             current.sort_hand()
-            current.find_and_score_sets()
+            sets_found = current.find_sets_in_hand()
 
-            # Check for win
-            if current.sets_count() >= WINNING_SETS:
+            if len(sets_found) >= 3:
                 winner = current
                 break
 
@@ -81,7 +75,6 @@ class Game:
             self.current_player_index = (self.current_player_index + 1) % len(self.players)
 
         self._print_final_results(winner)
-
 
     # Turn logic
     def _print_table_state(self, current: Player) -> None:
@@ -92,30 +85,30 @@ class Game:
         for player in self.players:
             top = player.top_discard()
             if player.is_human:
-                print(f"{player.name} (HUMAN) - hand size: {player.hand_size()}, " f"sets: {player.sets_count()}, score: {player.score}")
+                print(f"{player.name} (HUMAN) - hand size: {player.hand_size()}, "
+                      f"sets: {player.sets_count()}, score: {player.score}")
                 print("Hand:")
                 print(player.describe_hand())
                 print("\nSets:")
                 print(player.describe_sets())
             else:
-                print(f"{player.name} (AI) - hand size: {player.hand_size()}, " f"sets: {player.sets_count()}, score: {player.score}")
+                print(f"{player.name} (AI) - hand size: {player.hand_size()}, "
+                      f"sets: {player.sets_count()}, score: {player.score}")
                 if top:
                     print(f"Top discard: {top}")
-                else: print("No dicards yet.")
+                else:
+                    print("No discards yet.")
 
             print("-" * 60)
 
-
     def _human_turn(self, player: Player) -> bool:
-        # Returns true if human player chooses to quit.
         print("You must first draw one card, then discard one.")
-
-        # Determine draw options
         print("Draw options:")
         print(" 1 - Draw from the deck")
+
         valid_discard_sources = []
 
-        # Determine if any opponent discard piles are available
+        # Identify available opponent discard piles
         for idx, opp in enumerate(self.players):
             if opp is not player and opp.top_discard():
                 print(f" {idx + 2} - Take from {opp.name}'s discard pile")
@@ -123,17 +116,15 @@ class Game:
 
         print(" q - Quit game")
 
-
-        # Input loop
+        # draw
         while True:
             choice = input("Choose where to draw from: ").strip().lower()
 
             if choice == "q":
                 return True
-            
-            # Deck draw
+
             if choice == "1":
-                drawn - self.deck.draw()
+                drawn = self.deck.draw()
                 if drawn:
                     print(f"You drew: {drawn}")
                     player.add_card(drawn)
@@ -141,49 +132,45 @@ class Game:
                     print("Deck is empty.")
                 break
 
-            # Discard pile draw
             if choice.isdigit():
                 num = int(choice)
-                # If num > 1, check if it corresponds to a real discard source
                 if num >= 2:
-                    opp_index = num - 2 
+                    opp_index = num - 2
                     if opp_index < len(self.players) and opp_index in valid_discard_sources:
                         opponent = self.players[opp_index]
                         card = player.take_from_discard(opponent)
                         print(f"You took: {card} from {opponent.name}")
                         break
             
-            print ("Invalid choice, try again.")
+            print("Invalid choice, try again.")
 
-            # Discard
-            if player.hand_size() == 0:
-                print("Your hand is empty. Nothing to discard.")
-                return False
-            
-            player.sort_hand()
-            print("\nYour updated hand:")
-            print(player.describe_hand())
-
-
-            while True:
-                disc = input("Choose a card index to discard: ").strip().lower()
-                if disc == "q":
-                    return True
-                if disc.isdigit():
-                    idx = int(disc)
-                    if 0 <= idx < player.hand_size():
-                        removed = player.discard_card_by_index(idx)
-                        print(f"You discard: {removed}")
-                        break
-                    print("Invalid index.")
-
-            input("Press Enter to end your turn...")
+        # discard
+        if player.hand_size() == 0:
+            print("Your hand is empty. Nothing to discard.")
             return False
+
+        player.sort_hand()
+        print("\nYour updated hand:")
+        print(player.describe_hand())
+
+        while True:
+            disc = input("Choose a card index to discard: ").strip().lower()
+            if disc == "q":
+                return True
+            if disc.isdigit():
+                idx = int(disc)
+                if 0 <= idx < player.hand_size():
+                    removed = player.discard_card_by_index(idx)
+                    print(f"You discard: {removed}")
+                    break
+            print("Invalid index.")
+
+        input("Press Enter to end your turn...")
+        return False
         
     def _computer_turn(self, player: Player) -> None:
         print(f"{player.name} is taking a turn.")
 
-        # Decide draw choice. Implement a 40% chance of stealing from any opponent with a visible discard
         steal_candidates = [p for p in self.players if p is not player and p.top_discard()]
         drawn = None
 
@@ -203,8 +190,7 @@ class Game:
         if player.hand_size() > 0:
             idx = random.randrange(player.hand_size())
             removed = player.discard_card_by_index(idx)
-            print(f"{player.hand} discards: {removed}")
-
+            print(f"{player.name} discards: {removed}")
 
     # Results
     def _print_final_results(self, winner: Player | None) -> None:
@@ -212,12 +198,11 @@ class Game:
         print("Game over!")
 
         for p in self.players:
-            print(f"{p.name} - sets: {p.sets_count()}, score: {p.score}, " f"hand size: {p.handsize()}")
+            print(f"{p.name} - sets: {p.sets_count()}, score: {p.score}, "
+                  f"hand size: {p.hand_size()}")
 
         if winner is None:
             print("No one reached 3 sets before deck exhaustion. Draw.")
         else:
             print(f"{winner.name} WINS the game!")
         print("=" * 60)
-            
-

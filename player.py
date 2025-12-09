@@ -84,46 +84,68 @@ class Player:
 
     # Detect sets and score
 
-    def find_and_score_sets(self) -> None:
-        # Detect all possible 3 card sets in the hand and move them to completed_sets while updating score. 
-        # Sets include 3 of a kind with 3 identical cards (same category and ingredient) and category sets or 3 cards of the same category with 3 unique ingredients
-        # Form all 3 of a kind sets first
+    def find_sets_in_hand(self):
+        # Detect 3 of a kind sets and do not remove any cards. Return a list of sets.
+        sets_found = []
 
-        if len(self.hand) < 3:
-            return
-        
+        # Group by card identity
+        by_exact = {}
+        for card in self.hand:
+            key = (card.category, card.ingredient)
+            by_exact.setdefault(key, []).append(card)
 
-        # Use a copy so we can rebuild self.hand
-        remaining_cards = list(self.hand)
+        # Detect 3 of a kind
+        for key, cards in by_exact.items():
+            if len(cards) >= 3:
+                sets_found.append(("three_of_a_kind", cards[:3]))
 
-        # 3 of a kind sets
-        remaining_cards = self._extract_three_of_a_kind_sets(remaining_cards)
+        # Group by category for cateogry sets
+        by_category = {}
+        for card in self.hand:
+            by_category.setdefault(card.category, {})
+            by_category[card.category].setdefault(card.ingredient, 0)
+            by_category[card.category][card.ingredient] += 1
 
-        # Category sets from remaining card
-        remaining_cards = self._extract_category_sets(remaining_cards)
+        # For each category, see if we have all 3 different ingredients
+        from card import CATEGORIES
+        for category, ingredients in CATEGORIES.items():
+            if category in by_category:
+                counts = [by_category[category].get(ing, 0) for ing in ingredients]
+                if min(counts) >= 1:
+                    # Can form exactly one category set (do NOT remove cards)
+                    # Build a 3-card list from the hand
+                    set_cards = []
+                    for ing in ingredients:
+                        for card in self.hand:
+                            if card.category == category and card.ingredient == ing:
+                                set_cards.append(card)
+                                break
+                    sets_found.append(("category_set", set_cards))
 
-        # Replace hand with remaining cards
-        self.hand = remaining_cards
+        return sets_found
 
 
     def _extract_three_of_a_kind_sets(self, cards: List[Card]) -> List[Card]:
         groups = {}
         for card in cards:
             key = card.id_tuple()
-            groups.setdefault(key, []). append(card)
+            groups.setdefault(key, []).append(card)
 
-        remaining: List[Card] - 1
+        remaining: List[Card] = []  # MUST be initialized before loop
 
         for key, card_list in groups.items():
             count = len(card_list)
-            if count >- 3:
-                # Use exactly 3 for one set, leave extras in hand
+            if count >= 3:
+                # Take exactly 3 cards for the set
                 set_cards = card_list[:3]
-                self.completed_sets.append(("three of a kind", set_cards))
+                self.completed_sets.append(("three_of_a_kind", set_cards))
                 self.score += 120
+
+                # Extra copies (4th card) should remain in the hand
                 extra_cards = card_list[3:]
                 remaining.extend(extra_cards)
             else:
+                # Less than 3, keep all in remaining pool
                 remaining.extend(card_list)
 
         return remaining
@@ -166,7 +188,7 @@ class Player:
     # Helpers
     
     def hand_size(self) -> int:
-        return len(self_hand)
+        return len(self.hand)
     
 
     def sets_count(self) -> int:

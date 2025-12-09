@@ -28,7 +28,7 @@ class Deck:
         n = len(self.cards)
         for i in range( n - 1, 0, -1):
             j = random.randint(0, i)
-            self.cards[i], self.cards[j], self.cards[i]]
+            self.cards[i], self.cards[j] = self.cards[j], self.cards[i]
 
     
 
