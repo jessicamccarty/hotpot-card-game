@@ -15,3 +15,14 @@ CATEGORIES = {
     "Carbs": ["Dumpling", "Tofu", "RiceCake"],
 }
 
+@dataclass(frozen=True)
+class Card:
+    category: str
+    ingredient: str
+
+    def id_tuple(self):
+        # For sorting and search. Will return a tuple (category, ingredient).
+        return self.category, self.ingredient
+
+    def __str__(self):
+        return f"{self.ingredient} [{self.category}]"
